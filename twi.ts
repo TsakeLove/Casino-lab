@@ -1,78 +1,91 @@
-export class MersenneTwisterRandomizer {
-    private w = 32;
-    private n = Number(624);
-    private m = 397;
-    private r = 31;
-    private a = "9908B0DF";
+export class MTSimulate {
+    private w = BigInt(32);
+    private n = BigInt(624);
+    private m = BigInt(397);
+    private r = BigInt(31);
+    private a = BigInt(0x9908B0DF);
 
-    private u = 11;
-    private d = "FFFFFFFF";
-    private s = 7;
-    private b = "9D2C5680";
-    private t = 15;
-    private c = "EFC60000";
+    private u = BigInt(11);
+    private d = BigInt(0xFFFFFFFF);
+    private s = BigInt(7);
+    private b = BigInt(0x9D2C5680);
+    private t = BigInt(15);
+    private c = BigInt(0xEFC60000);
 
-    private l = 18;
-    private f = 1812433253;
+    private l = BigInt(18);
+    private f = BigInt(1812433253);
 
-    private lowerMask = "7FFFFFFF";
-    private upperMask = "80000000";
+    private lowerMask = (1n << 31n) - 1n;
+    private upperMask = 1n << 31n
 
-    private array: number[];
-    private index: number;
+    private array: bigint[];
+    private index: bigint;
 
-    constructor(private makeService: any) {
+    constructor( seed: number) {
         // Initialization inside the constructor
         this.array = [];
-        this.seed = 0;
-        this.index = 0;
+        this.MersenneTwisterRandomizer(seed);
+    }
+
+    public get getArray(): bigint[] {
+        return this.array;
     }
 
     private seed: number;
 
 
-    public MersenneTwisterRandomizer(array: number[]) {
-        //  this.index = 0;
-        this.array = array;
-        this.twist();
-    }
+    // public MersenneTwisterRandomizer(array: number[]) {
+    //     //  this.index = 0;
+    //     this.array = [...array].map(BigInt);
+    //     this.twist();
+    // }
 
     public getRandomNumber() {
         if (this.index >= this.n) {
+            if (this.index > this.n) {
+                throw new Error("Generator was never seeded");
+            }
             this.twist();
-            this.index = 0;
         }
-
-        let result = this.array[this.index];
-        result = result ^ ((result >> this.u) & parseFloat(this.d));
-        result = result ^ ((result << this.s) & parseFloat(this.b));
-        result = result ^ ((result << this.t) & parseFloat(this.c));
+        let result = this.array[Number(this.index)];
+        result = result ^ ((result >> this.u) & (this.d));
+        result = result ^ ((result << this.s) & (this.b));
+        result = result ^ ((result << this.t) & (this.c));
         result = result ^ (result >> this.l);
 
         this.index++;
-        return result;
+        return result & ((BigInt(1) << this.w) - BigInt(1));
     }
 
-    public MersenneTwisterRandomizer2(seed: number) {
-        this.seed = seed;
-
-        this.index = this.n + 1;
-        this.array = [];
-        this.array[0] = seed;
+    private MersenneTwisterRandomizer(seed: number) {
+        // this.index = this.n + BigInt(1);
+        // this.array = [];
+        this.array[0] = BigInt(seed);
         for (let i = 1; i < this.n; i++) {
-            this.array[i] = (this.f * (this.array[i - 1] ^ (this.array[i - 1] >> (this.w - 2))) + i) & parseFloat("ffffffff");
-        }
+            this.array[i] = (this.f *
+                (this.array[i - 1] ^
+                    (this.array[i - 1] >> (this.w - BigInt(2)))) +
+                BigInt(i)) &
+                ((BigInt(1) << this.w) - BigInt(1));}
     }
 
     private twist() {
         for (let i = 0; i < this.n; i++) {
 
-            let x: number = (this.array[i] & parseFloat(this.upperMask)) + ((this.array)[(i + 1) % this.n] & parseFloat(this.lowerMask));
-            let xA: number = x >> 1;
-            if ((x % 2) != 0) {
-                xA = xA ^ parseFloat(this.a);
+            let x =
+                (this.array[i] & this.upperMask) +
+                (this.array[Number(BigInt(i + 1) % this.n)] & this.lowerMask);
+            let xA = x >> BigInt(1);
+            if ((x % BigInt(2)) !== BigInt(0)) {
+                xA = xA ^ this.a;
             }
-            this.array[i] = this.array[(i + this.m) % this.n] ^ xA;
+            this.array[i] =
+                this.array[Number((BigInt(i) + this.m) % this.n)] ^ xA;
         }
+        this.index = BigInt(0);
+    }
+    public setStateWithIndex(array: number[], i: number) {
+        this.array = [...array].map(BigInt);
+        this.index = BigInt(i);
     }
 }
